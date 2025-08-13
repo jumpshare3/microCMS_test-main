@@ -5,6 +5,7 @@ on:
     branches: [ main ]   # ← デプロイ対象ブランチ。必要に応じて変更
   workflow_dispatch:      # 手動実行も可（「Run workflow」）
   repository_dispatch:    # ここを追加
+   types: [microcms-cases-updated]  
 permissions:
   contents: read
   pages: write
