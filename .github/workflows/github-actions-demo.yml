@@ -1,18 +1,58 @@
-name: GitHub Actions Demo
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
-on: [push]
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]   # ← デプロイ対象ブランチ。必要に応じて変更
+  workflow_dispatch:      # 手動実行も可（「Run workflow」）
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+env:
+  # 公開したいディレクトリ（ZIPそのままの構成に合わせています）
+  PUBLISH_DIR: microCMS_test-main/microCMS_test-main
+
 jobs:
-  Explore-GitHub-Actions:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
-      - name: Check out repository code
+      - name: Checkout
         uses: actions/checkout@v4
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
-      - name: List files in the repository
+
+      # （任意）microCMSの設定ファイルをSecretsから生成する場合
+      # 既に assets/js/microcms.js をコミットしているなら、このStepは削除OK
+      - name: Create microcms.js from Secrets
         run: |
-          ls ${{ github.workspace }}
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+          cat > assets/js/microcms.js <<'EOF'
+          export const microcms = {
+            SERVICE_ID: "${{ secrets.MICROCMS_SERVICE_ID }}",
+            API_KEY: "${{ secrets.MICROCMS_API_KEY }}",
+          };
+          EOF
+        working-directory: ${{ env.PUBLISH_DIR }}
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      # ビルド工程が不要な静的サイトなので、そのままアップロード
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ env.PUBLISH_DIR }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
