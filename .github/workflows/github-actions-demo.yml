@@ -16,7 +16,7 @@ concurrency:
 
 env:
   # 公開したいディレクトリ（ZIPそのままの構成に合わせています）
-  PUBLISH_DIR: microCMS_test-main
+  PUBLISH_DIR: .
 
 jobs:
   build:
